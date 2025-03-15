@@ -1,40 +1,79 @@
 const mongoose = require('mongoose');
 
 const mangaSchema = new mongoose.Schema({
-  mangadexId: {
-    type: String,
-    required: true,
-    unique: true
-  },
   title: {
-    en: {
-      type: String,
-      required: true
-    },
-    vi: String
+    vi: { type: String, required: true },
+    en: { type: String }
   },
+  alternativeTitles: [String],
   description: {
-    en: String,
-    vi: String
+    vi: { type: String, required: true },
+    en: { type: String }
   },
-  status: {
+  coverImage: {
     type: String,
-    enum: ['ongoing', 'completed', 'hiatus', 'cancelled'],
-    default: 'ongoing'
+    required: [true, 'Manga phải có ảnh bìa']
   },
   genres: [String],
-  coverImage: String,
-  lastChapter: String,
+  status: {
+    type: String,
+    enum: ['ongoing', 'completed', 'hiatus'],
+    default: 'ongoing'
+  },
+  creator: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: [true, 'Manga phải có người tạo']
+  },
+  translators: [{
+    type: mongoose.Schema.ObjectId,
+    ref: 'User'
+  }],
+  views: {
+    type: Number,
+    default: 0
+  },
   followCount: {
     type: Number,
     default: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0
+  },
+  avgRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  lastChapter: String,
+  lastUpdated: {
+    type: Date,
+    default: Date.now
+  },
+  publicationStatus: {
+    type: String,
+    enum: ['draft', 'pending', 'published', 'rejected'],
+    default: 'pending'
+  },
+  language: {
+    type: String,
+    enum: ['vi', 'en'],
+    default: 'vi'
   }
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
-mangaSchema.index({ 'title.en': 'text', 'title.vi': 'text' });
+// Ảo hóa để lấy danh sách chapter
+mangaSchema.virtual('chapters', {
+  ref: 'Chapter',
+  foreignField: 'manga',
+  localField: '_id'
+});
 
-module.exports = mongoose.model('Manga', mangaSchema);
+const Manga = mongoose.model('Manga', mangaSchema);
+module.exports = Manga;

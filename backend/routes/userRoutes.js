@@ -37,4 +37,11 @@ router.patch(
   userController.updateNotificationSettings
 );
 
+router.get('/me', userController.getMe);
+router.patch('/update-me', userController.updateMe);
+router.post('/apply-translator', userController.applyTranslator);
+router.get('/translators', userController.getPendingTranslators);
+router.patch('/approve-translator/:id', userController.approveTranslator);
+router.patch('/reject-translator/:id', userController.rejectTranslator);
+
 module.exports = router;

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -12,12 +13,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Vui lòng nhập email'],
     unique: true,
-    lowercase: true
+    lowercase: true,
+    validate: [validator.isEmail, 'Email không hợp lệ']
   },
   password: {
     type: String,
     required: [true, 'Vui lòng nhập mật khẩu'],
-    minlength: 6,
+    minlength: 8,
     select: false
   },
   avatar: {
@@ -26,8 +28,21 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'translator', 'admin'],
     default: 'user'
+  },
+  translatorInfo: {
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    languages: [String],
+    experience: String,
+    application: {
+      message: String,
+      applyDate: Date
+    }
   },
   bio: {
     type: String,
@@ -72,13 +87,12 @@ const userSchema = new mongoose.Schema({
       default: true
     }
   },
-  passwordResetToken: String,
-  passwordResetExpires: Date,
-  active: {
-    type: Boolean,
-    default: true,
-    select: false
-  }
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date
 }, {
   timestamps: true
 });
@@ -89,8 +103,8 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
-userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
-  return await bcrypt.compare(candidatePassword, userPassword);
+userSchema.methods.comparePassword = async function(inputPassword) {
+  return await bcrypt.compare(inputPassword, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);

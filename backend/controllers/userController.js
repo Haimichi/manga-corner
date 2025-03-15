@@ -188,3 +188,126 @@ const filterObj = (obj, ...allowedFields) => {
   });
   return newObj;
 };
+
+// Lấy thông tin người dùng hiện tại
+exports.getMe = catchAsync(async (req, res, next) => {
+  res.status(200).json({
+    status: 'success',
+    data: req.user
+  });
+});
+
+// Cập nhật thông tin người dùng
+exports.updateMe = catchAsync(async (req, res, next) => {
+  // Lọc các trường không cho phép cập nhật
+  const filteredBody = filterObj(req.body, 'username', 'email', 'avatar');
+  
+  const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
+    new: true,
+    runValidators: true
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: updatedUser
+  });
+});
+
+// Đăng ký làm dịch giả
+exports.applyTranslator = catchAsync(async (req, res, next) => {
+  const { languages, experience, message } = req.body;
+
+  if (!languages || !experience || !message) {
+    return next(new AppError('Vui lòng cung cấp đầy đủ thông tin', 400));
+  }
+
+  // Kiểm tra nếu người dùng đã là dịch giả
+  if (req.user.role === 'translator') {
+    return next(new AppError('Bạn đã là dịch giả', 400));
+  }
+
+  // Kiểm tra nếu đã có đơn đăng ký
+  if (req.user.translatorInfo && req.user.translatorInfo.status === 'pending') {
+    return next(new AppError('Đơn đăng ký của bạn đang chờ phê duyệt', 400));
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      translatorInfo: {
+        status: 'pending',
+        languages,
+        experience,
+        application: {
+          message,
+          applyDate: Date.now()
+        }
+      }
+    },
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Đơn đăng ký đã được gửi thành công',
+    data: updatedUser
+  });
+});
+
+// Lấy danh sách đơn đăng ký dịch giả
+exports.getPendingTranslators = catchAsync(async (req, res, next) => {
+  const translators = await User.find({
+    'translatorInfo.status': 'pending'
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: translators.length,
+    data: translators
+  });
+});
+
+// Phê duyệt đơn đăng ký dịch giả
+exports.approveTranslator = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(new AppError('Không tìm thấy người dùng', 404));
+  }
+
+  if (!user.translatorInfo || user.translatorInfo.status !== 'pending') {
+    return next(new AppError('Không có đơn đăng ký đang chờ phê duyệt', 400));
+  }
+
+  user.role = 'translator';
+  user.translatorInfo.status = 'approved';
+  await user.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Đã phê duyệt đơn đăng ký dịch giả',
+    data: user
+  });
+});
+
+// Từ chối đơn đăng ký dịch giả
+exports.rejectTranslator = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    return next(new AppError('Không tìm thấy người dùng', 404));
+  }
+
+  if (!user.translatorInfo || user.translatorInfo.status !== 'pending') {
+    return next(new AppError('Không có đơn đăng ký đang chờ phê duyệt', 400));
+  }
+
+  user.translatorInfo.status = 'rejected';
+  await user.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Đã từ chối đơn đăng ký dịch giả',
+    data: user
+  });
+});
