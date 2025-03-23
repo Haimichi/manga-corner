@@ -11,11 +11,6 @@ Manga Corner là một ứng dụng web giúp người dùng khám phá và qu�
 - ❤️ **Quản Lý Yêu Thích**: Quản lý danh sách manga yêu thích.
 - ✅ **Đánh Dấu Đã Đọc**: Đánh dấu các chương đã đọc.
 
-## Ngôn ngữ sử dụng
-
-- **JavaScript**: 99.8%
-- **Other**: 0.2%
-
 ## Cài đặt
 
 ### Yêu cầu Hệ thống
